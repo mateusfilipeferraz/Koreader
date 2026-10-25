@@ -1,70 +1,197 @@
-# Next Reads (TBR Queue) for Bookshelf (KOReader)
+-- 2-bookshelf-tbr-next.lua
+local userpatch = require("userpatch")
+local UIManager = require("ui/uimanager")
+local DataStorage = require("datastorage")
+local json = require("json")
+local InfoMessage = require("ui/widget/infomessage")
 
-A lightweight and non-intrusive **User Patch** for [KOReader](https://github.com/koreader/koreader) that integrates a dedicated **Next Reads / TBR (To Be Read)** queue into the [Bookshelf](https://www.google.com/search?q=https://github.com/bookshelf-koreader/bookshelf) plugin.
+-- =========================================================================
+-- Sistema de Tradução Dinâmico (segue o idioma do Bookshelf / KOReader)
+-- =========================================================================
+local function getLanguage()
+    -- Tenta pegar a linguagem configurada nas opções do KOReader
+    if G_reader_settings and G_reader_settings.readSetting then
+        local lang = G_reader_settings:readSetting("language")
+        if lang and lang ~= "" then
+            return lang:lower()
+        end
+    end
+    -- Fallback via variável de ambiente ou padrão
+    local env_lang = os.getenv("LANG") or "en"
+    return env_lang:lower()
+end
 
----
+local function getLocaleStrings()
+    local lang = getLanguage()
+    
+    -- Se for Português (Brasil ou Portugal)
+    if lang:find("^pt") then
+        return {
+            display_name = "Próximas Leituras",
+            add_button   = "Adicionar a Próximas Leituras",
+            rem_button   = "Remover de Próximas Leituras",
+            added_msg    = "Livro adicionado a Próximas Leituras!",
+            removed_msg  = "Livro removido de Próximas Leituras.",
+        }
+    end
 
-## 🎯 Overview
+    -- Padrão (Inglês)
+    return {
+        display_name = "Next Reads",
+        add_button   = "Add to Next Reads",
+        rem_button   = "Remove from Next Reads",
+        added_msg    = "Added to Next Reads!",
+        removed_msg  = "Removed from Next Reads.",
+    }
+end
 
-Managing a large digital library often leads to choice paralysis when deciding what to read next. This patch provides a dedicated shelf view where you can pin the books you plan to read next without cluttering your main library views.
+local QUEUE_FILE = DataStorage:getSettingsDir() .. "/bookshelf_next_queue.json"
 
----
+local function loadQueue()
+    local f = io.open(QUEUE_FILE, "r")
+    if not f then return {} end
+    local content = f:read("*a")
+    f:close()
+    local ok, data = pcall(json.decode, content)
+    return (ok and type(data) == "table") and data or {}
+end
 
-## ✨ Features
+local function saveQueue(list)
+    local f = io.open(QUEUE_FILE, "w")
+    if f then
+        f:write(json.encode(list))
+        f:close()
+    end
+end
 
-* **Native Bookshelf Tab:** Injects a dedicated **"Next Reads"** tab into the top shelf navigation bar to display only the books in your queue.
-* **Direct Book Action:** Adds a toggle button (**"Add to Next Reads" / "Remove from Next Reads"**) inside the **Edit** tab of the book details dialog (under the *Plugin Actions* section, accessed via long-pressing any book cover).
-* **Non-Destructive:** Does not modify upstream Bookshelf or KOReader core files. Upstream updates will not overwrite your configuration.
-* **Lightweight Persistence:** The queue list is stored in a clean JSON format at `settings/bookshelf_next_queue.json`.
-* **Customizable Label:** The display name of the tab and action buttons can be customized via a single variable at the top of the script.
+local function toggleQueue(filepath)
+    local q = loadQueue()
+    local found = false
+    for i, fp in ipairs(q) do
+        if fp == filepath then
+            table.remove(q, i)
+            found = true
+            break
+        end
+    end
+    if not found then
+        table.insert(q, filepath)
+    end
+    saveQueue(q)
+    return not found
+end
 
----
+-- =========================================================================
+-- 1. Injeção do Botão em "AÇÕES DO PLUGIN"
+-- =========================================================================
+local function registerNextButton(fm_instance)
+    local FileManager = require("apps/filemanager/filemanager")
+    local target = fm_instance or FileManager
 
-## 📥 Installation
+    if target and target.addFileDialogButtons then
+        target:addFileDialogButtons("tbr_next_toggle", function(file)
+            local strings = getLocaleStrings()
+            local q = loadQueue()
+            local in_q = false
+            for _, fp in ipairs(q) do
+                if fp == file then in_q = true; break end
+            end
 
-1. Download or copy the [`2-bookshelf-tbr-next.lua`](https://www.google.com/search?q=%23patch-code) file.
-2. Connect your device (Kindle, Kobo, Android, etc.) to your computer via USB or access its filesystem via SSH/SFTP.
-3. Place the file inside the KOReader patches directory:
-```text
-koreader/patches/2-bookshelf-tbr-next.lua
+            return {{
+                text = in_q and strings.rem_button or strings.add_button,
+                callback = function()
+                    local added = toggleQueue(file)
+                    local current_strings = getLocaleStrings()
+                    UIManager:show(InfoMessage:new{
+                        text = added and current_strings.added_msg or current_strings.removed_msg,
+                        timeout = 2,
+                    })
+                end,
+            }}
+        end)
+    end
+end
 
-```
+-- Hook na classe FileManager
+local FileManager = require("apps/filemanager/filemanager")
+if FileManager and not FileManager._original_init_tbr_next then
+    FileManager._original_init_tbr_next = FileManager.init
+    FileManager.init = function(self, ...)
+        local ret = FileManager._original_init_tbr_next(self, ...)
+        registerNextButton(self)
+        return ret
+    end
+    registerNextButton(FileManager)
+end
 
+-- =========================================================================
+-- 2. Injeção da Aba no Bookshelf
+-- =========================================================================
+local function patchBookshelfPlugin(plugin)
+    local ok_tm, TabModel = pcall(require, "lib/bookshelf_tab_model")
+    if ok_tm and TabModel and not TabModel._tbr_patched then
+        TabModel._tbr_patched = true
 
-*(If the `patches/` folder does not exist inside `koreader/`, create it).*
-4. Restart KOReader (**Top Menu > Settings / Tools > Exit > Restart KOReader**).
+        local orig_getActive = TabModel.getActive
+        TabModel.getActive = function(...)
+            local tabs = orig_getActive(...)
+            local has_next = false
+            for _, t in ipairs(tabs) do
+                if t.id == "next" then has_next = true; break end
+            end
+            if not has_next then
+                local strings = getLocaleStrings()
+                table.insert(tabs, {
+                    id = "next",
+                    label = strings.display_name,
+                    source = { kind = "next" },
+                })
+            end
+            return tabs
+        end
 
----
+        local orig_getById = TabModel.getById
+        TabModel.getById = function(id, ...)
+            if id == "next" then
+                local strings = getLocaleStrings()
+                return { id = "next", label = strings.display_name, source = { kind = "next" } }
+            end
+            return orig_getById(id, ...)
+        end
+    end
 
-## 📖 Usage
+    local ok_bw, BookshelfWidget = pcall(require, "lib/bookshelf_widget")
+    if ok_bw and BookshelfWidget and not BookshelfWidget._tbr_patched then
+        BookshelfWidget._tbr_patched = true
 
-1. **Adding/Removing a book:**
-* On the Bookshelf grid, long-press the cover of any book.
-* Switch to the **Edit** tab in the book details dialog.
-* Scroll down to **PLUGIN ACTIONS** and tap **"Add to Next Reads"**.
-*(To remove it later, repeat the steps and tap "Remove from Next Reads").*
+        local orig_fetch = BookshelfWidget._fetchChipItems
+        BookshelfWidget._fetchChipItems = function(self_widget, n, want_all)
+            if self_widget.chip == "next" and not (self_widget._drilldown_path and #self_widget._drilldown_path > 0) then
+                local queue = loadQueue()
+                local ok_repo, Repo = pcall(require, "lib/bookshelf_book_repository")
+                local books = {}
+                for _, fp in ipairs(queue) do
+                    local b = nil
+                    if ok_repo and Repo then
+                        if Repo.buildBookMeta then
+                            b = Repo.buildBookMeta(fp, { lazy_cover = true })
+                        elseif Repo.lightMetaFor then
+                            b = Repo.lightMetaFor(fp)
+                        end
+                    end
+                    if not b then
+                        b = {
+                            filepath = fp,
+                            title = (fp:match("([^/]+)$") or fp):gsub("%.[^%.]+$", ""),
+                        }
+                    end
+                    table.insert(books, b)
+                end
+                return books, #books
+            end
+            return orig_fetch(self_widget, n, want_all)
+        end
+    end
+end
 
-
-2. **Accessing the queue:**
-* Tap the **Next Reads** tab on the top navigation bar of Bookshelf to view your queued books.
-
-
-
----
-
-## ⚙️ Customization
-
-If you prefer a different label on the tab and action buttons (e.g., `"TBR"`, `"Reading Queue"`, or `"Up Next"`), open `2-bookshelf-tbr-next.lua` and edit the `DISPLAY_NAME` variable near the top:
-
-```lua
--- VISIBLE NAME FOR TAB AND BUTTONS
-local DISPLAY_NAME = "Reading Queue"
-
-```
-
-> **Note:** Only change the text inside the quotes for `DISPLAY_NAME`. Do not rename internal identifiers (`"next"`) throughout the rest of the script to prevent runtime errors.
-
-
-## 📄 License
-
-This patch is distributed under the [MIT](https://www.google.com/search?q=LICENSE) License.
+userpatch.registerPatchPluginFunc("bookshelf", patchBookshelfPlugin)
