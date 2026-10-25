@@ -1,4 +1,3 @@
- crie em inglês
 Next Reads (TBR Queue) for Bookshelf (KOReader)
 
 A lightweight and non-intrusive User Patch for KOReader that integrates a dedicated Next Reads / TBR (To Be Read) queue into the Bookshelf plugin.
