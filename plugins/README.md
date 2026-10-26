@@ -1,83 +1,73 @@
-# KOReader Modifications, Patches & Plugins
+Markdown
 
-A curated collection of personal modifications, plugins, and **user patches** for the open-source e-reader application **[KOReader](https://github.com/koreader/koreader)**.
+# All Highlights (KOReader Plugin)
 
-The purpose of this repository is to centralize custom UI adjustments, workflow automations, and feature enhancements designed to improve the daily reading experience on e-ink devices and emulators.
+A centralized highlights and notes viewer for [KOReader](https://github.com/koreader/koreader).
 
----
-
-## 📂 Repository Structure
-
-Projects are organized into dedicated modular directories by category:
-
-```text
-KOReader/
-├── patches/                  # User patches (.lua) for runtime injection
-│   └── next-reads/           # 'Next Reads' (TBR) shelf for Bookshelf
-├── plugins/                  # Full standalone plugins (.koplugin)
-│   └── (work in progress)
-└── README.md                 # Repository overview and documentation
-
-```
+Browse, review, and read all annotations across your entire library directly from the main menu, without needing to open each book individually.
 
 ---
 
-## 🛠️ Projects & Patches
+## 💡 The Problem
 
-### 1. [Next Reads (TBR Queue) for Bookshelf](https://www.google.com/search?q=./patches/next-reads/)
+In KOReader, viewing highlights and bookmarks is straightforward while inside an active book. However, when browsing the File Manager or organizing your library, there is no quick, unified way to consult your saved notes across multiple titles. Reviewing quotes from finished books or checking recent annotations typically required opening each document one by one.
 
-* **Type:** User Patch (`2-bookshelf-tbr-next.lua`)
-* **Target:** [Bookshelf Plugin](https://www.google.com/search?q=https://github.com/bookshelf-koreader/bookshelf)
-* **Description:** Injects a dedicated **"Next Reads"** tab into Bookshelf's top navigation bar and provides an inline toggle button under *Plugin Actions* (inside the book details menu) to easily add or remove titles from your immediate reading queue.
-* **Compatibility:** Tested on jailbroken Kindle devices and the KOReader emulator.
-
-*(Additional patches, scripts, and utilities will be added here as they are developed).*
+**All Highlights** solves this by directly reading your book metadata files (`.sdr` directories) and providing a centralized, native-styled interface to browse all your highlights, notes, and quotes from anywhere.
 
 ---
 
-## 📥 Installation Guide
+## ✨ Features
 
-Installation steps vary depending on whether you are using a user patch or a standalone plugin:
-
-### User Patches (`.lua`)
-
-1. Connect your e-reader to your computer (via USB, SSH, or SFTP).
-2. Copy the desired `.lua` patch file into KOReader's patches directory:
-```text
-koreader/patches/
-
-```
-
-
-*(If the `patches/` folder does not exist in your KOReader root directory, create it).*
-3. Restart KOReader (**Top Menu > Tools/Settings > Exit > Restart KOReader**).
-
-### Standalone Plugins (`.koplugin`)
-
-1. Copy the entire plugin folder (e.g., `plugin_name.koplugin/`) into:
-```text
-koreader/plugins/
-
-```
-
-
-2. Restart KOReader to allow the internal module loader to register the new plugin.
+- **Centralized Library View:** Automatically detects and lists all books that contain saved highlights, along with total annotation counts.
+- **Interactive Highlight Browser:** Select any title to inspect quotes with page numbers, chapter context, creation timestamps, and user notes.
+- **Continuous Reading View:** View all highlights from a chosen book on a single scrollable text screen (ideal for study review or copying text).
+- **Native UI Integration:** Built with standard KOReader widgets (`Menu`, `TextViewer`, `InfoMessage`) to match the stock system aesthetic.
+- **Dynamic Localization:** Automatically adapts to KOReader’s active interface language (supports Portuguese and English out of the box).
+- **Dispatcher Ready:** Registered as a global action (`show_all_highlights`), allowing you to bind it to gestures, corner taps, or hardware buttons.
+- **Context Independent:** Works seamlessly from both the File Manager and inside an open book.
 
 ---
 
-## 💡 Best Practices & Development Notes
+## 📦 Installation
 
-* **Non-destructive injection:** Patches utilize KOReader's native `userpatch` subsystem, ensuring that official updates to KOReader or third-party plugins (such as Bookshelf) will not overwrite your personal configurations.
-* **Diagnostics:** If any patch or script behaves unexpectedly, check the active execution log on your device:
-```text
-koreader/crash.log
+1. Download or clone this repository.
+https://github.com/mateusfilipeferraz/Koreader/releases#release-Highlights-Notes-Viewer-v1.0.0
+2. Copy the plugin folder to your KOReader plugins directory:
+   ```text
+   koreader/plugins/all_highlights.koplugin/
 
-```
+    Make sure the structure looks like this:
+    Plaintext
 
+    koreader/
+    └── plugins/
+        └── all_highlights.koplugin/
+            ├── _meta.lua
+            ├── main.lua
+            └── README.md
 
+    Restart KOReader (Exit > Restart).
 
----
+🚀 Usage
 
-## 📄 License
+    Open KOReader's top menu (in either the File Manager or inside a book).
 
-This repository is distributed under the [MIT](https://www.google.com/search?q=LICENSE) License. You are free to use, adapt, and build upon these scripts.
+    Look for Library Highlights (or Destaques da Biblioteca if using Portuguese).
+
+    The plugin will scan your document folders for .sdr metadata.
+
+    Select a book from the list to inspect its highlights individually or open the full continuous text review.
+
+    Note: KOReader flushes highlights to .sdr files on disk when a document is closed or saved. If you just highlighted a passage, close the book before launching the plugin to ensure the newest annotations are indexed.
+
+⚙️ Gesture / Key Mapping (Optional)
+
+Because the plugin registers an action with KOReader’s Dispatcher, you can map it to a gesture:
+
+    Go to Device > Gestures (or Key mappings on button-based devices).
+
+    Create a new shortcut and select View all highlights and notes (show_all_highlights).
+
+📄 License
+
+This project is open-source and released under the MIT License.
