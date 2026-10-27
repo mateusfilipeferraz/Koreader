@@ -44,6 +44,12 @@ Managing a large digital library often leads to choice paralysis when deciding w
     Accessing the queue:
 
         Tap the Next Reads tab on the top navigation bar of Bookshelf to view your queued books.
+<img width="378" height="630" alt="Screenshot_1" src="https://github.com/user-attachments/assets/ba449ff3-3f2d-41af-9581-c82b397bb22c" />
+<img width="372" height="572" alt="Screenshot_2" src="https://github.com/user-attachments/assets/f1f9dd50-e7a9-43d6-8a68-8a26928b010a" />
+<img width="362" height="499" alt="Screenshot_3" src="https://github.com/user-attachments/assets/e0e0396d-4f8a-4e2e-b5a1-2dd0cc7aab29" />
+<img width="494" height="520" alt="Screenshot_1" src="https://github.com/user-attachments/assets/9b45dbc3-a72a-4056-a168-aac1dc30a2f2" />
+<img width="504" height="798" alt="Screenshot_2" src="https://github.com/user-attachments/assets/8af8afc3-45b9-4771-b77f-cd3edabf49a7" />
+<img width="449" height="570" alt="Screenshot_3" src="https://github.com/user-attachments/assets/664af5d9-1db9-46d4-b739-ad43b12dcdb6" />
 
 ⚙️ Customization
 
