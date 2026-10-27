@@ -59,6 +59,9 @@ https://github.com/mateusfilipeferraz/Koreader/releases#release-Highlights-Notes
     Select a book from the list to inspect its highlights individually or open the full continuous text review.
 
     Note: KOReader flushes highlights to .sdr files on disk when a document is closed or saved. If you just highlighted a passage, close the book before launching the plugin to ensure the newest annotations are indexed.
+<img width="549" height="640" alt="Screenshot_1" src="https://github.com/user-attachments/assets/72728271-5359-4625-a115-d633f27444d4" />
+
+<img width="470" height="487" alt="Screenshot_2" src="https://github.com/user-attachments/assets/d64a7e4c-6cbe-4987-81a0-55aa342a99f2" />
 
 ⚙️ Gesture / Key Mapping (Optional)
 
